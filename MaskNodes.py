@@ -16,10 +16,10 @@ class SplitMasks:
             },
         }
 
-    RETURN_TYPES = ("IMAGES","MASK_MAPPING")
+    RETURN_TYPES = ("images","masks",)
     FUNCTION = "separate"
 
-    CATEGORY = "Masquerade Nodes"
+    CATEGORY = "mask"
 
     def separate(self, image,ignore_threshold=100):
         # 将pythorch的tensor转换为numpy的array
