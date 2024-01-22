@@ -11,8 +11,8 @@ class SplitMasks:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE",),
-                "ignore_threshold": ("INT",),
+                "mask": ("IMAGE",),
+                "ignore_threshold": ("INT",{"default": 0, "min": 0, "max": 512, "step": 1}),
             },
         }
 
@@ -21,9 +21,9 @@ class SplitMasks:
 
     CATEGORY = "mask"
 
-    def separate(self, image,ignore_threshold=100):
+    def separate(self, mask,ignore_threshold=100):
         # 将pythorch的tensor转换为numpy的array
-        numpy_image = image.numpy()
+        numpy_image = mask.numpy()
         # 将numpy的array转换为opencv的image
         opencv_gray_image = cv2.cvtColor(numpy_image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
         # 阈值处理，将图像二值化
@@ -52,17 +52,17 @@ class SplitMasks:
 
         for segmented_mask in segmented_masks:
             # 将 NumPy 数组转换为 torch
-            mask =  torch.from_numpy(segmented_mask)
+            i_mask =  torch.from_numpy(segmented_mask)
 
             # 添加维度
-            mask = mask.unsqueeze(0)
+            i_mask = mask.unsqueeze(0)
 
             # 创建一个空白图像（可以根据需要进行初始化）
-            image = torch.zeros_like(mask)
+            i_image = torch.zeros_like(i_mask)
 
             # 将图像和遮罩添加到输出列表
-            output_images.append(image)
-            output_masks.append(mask)
+            output_images.append(i_image)
+            output_masks.append(i_mask)
         
         return (output_images,output_masks,)
  
