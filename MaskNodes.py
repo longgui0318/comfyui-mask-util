@@ -16,7 +16,7 @@ class SplitMasks:
             },
         }
 
-    RETURN_TYPES = ("images","masks",)
+    RETURN_TYPES = ("IMAGE","MASK",)
     FUNCTION = "separate"
 
     CATEGORY = "mask"
