@@ -99,6 +99,7 @@ class MaskRegionInfo:
         return {
             "required": {
                 "mask": ("MASK",),
+                "expand": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1}),
             },
         }
 
@@ -109,7 +110,7 @@ class MaskRegionInfo:
 
     CATEGORY = "mask"
 
-    def takeInfo(self, mask):
+    def takeInfo(self, mask, expand):
         # 将pythorch的tensor转换为opencv需要的图像格式
         opencv_gray_image = tensorMask2cv2img(mask)
         # 阈值处理，将图像二值化
@@ -122,6 +123,12 @@ class MaskRegionInfo:
             return (mask, 0, 0, 0, 0,)
         all_contours = np.vstack(contours)
         x, y, w, h = cv2.boundingRect(all_contours)
+        xt = x + w
+        yt = y + h
+        x = max(0, x - expand)
+        y = max(0, y - expand)
+        w = min(xt + expand, opencv_gray_image.shape[1])-x
+        h = min(yt + expand, opencv_gray_image.shape[0])-y
         return (mask, x, y, w, h,)
 
 
