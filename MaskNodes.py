@@ -6,6 +6,65 @@ from .utils import *
 from .resolution_utils import *
 
 
+class ImageChangeDType:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "dtype": (["default", "float32", "float16", "bfloat16"],),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image", )
+    FUNCTION = "changeDType"
+
+    CATEGORY = "image"
+
+    def changeDType(self, image, dtype = "default"):
+        if dtype == "float16":
+            seleted_type = torch.float16
+        elif dtype == "bfloat16":
+            seleted_type = torch.bfloat16
+        else:
+            seleted_type = torch.float32
+        image = image.to(dtype=seleted_type)
+        return (image,)
+
+
+class MaskChangeDType:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "mask": ("MASK",),
+                "dtype": (["default", "float32", "float16", "bfloat16"],),
+            },
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("mask", )
+    FUNCTION = "changeDType"
+
+    CATEGORY = "mask"
+
+    def changeDType(self, mask, dtype = "default"):
+        if dtype == "float16":
+            seleted_type = torch.float16
+        elif dtype == "bfloat16":
+            seleted_type = torch.bfloat16
+        else:
+            seleted_type = torch.float32
+        mask = mask.to(dtype=seleted_type)
+        return (mask,)
+
 class ImageChangeDevice:
     def __init__(self):
         pass
@@ -457,6 +516,8 @@ class ImageCropWithMask:
 
 
 NODE_CLASS_MAPPINGS = {
+    "Mask Change DType": MaskChangeDType,
+    "Image Change DType": ImageChangeDType,
     "Mask Change Device": MaskChangeDevice,
     "Image Change Device": ImageChangeDevice,
     "Split Masks": SplitMasks,
@@ -468,6 +529,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "Mask Change DType": "Mask Change DType",
+    "Image Change DType": "Image Change DType",
     "Mask Change Device": "Mask Change Device",
     "Image Change Device": "Image Change Device",
     "Split Masks": "Split Masks",
