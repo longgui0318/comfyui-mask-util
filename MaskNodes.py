@@ -1,10 +1,112 @@
-import torch
-from comfy import model_management
-import numpy as np
+import os
 import cv2
+import torch
+import shutil
+import hashlib
+import folder_paths
+import node_helpers
+import numpy as np
+
+from pathlib import Path
+from comfy import model_management
+from PIL import Image, ImageOps, ImageSequence, ImageFile
 from .utils import *
 from .resolution_utils import *
 
+class OutputImageToInput:
+    @classmethod
+    def INPUT_TYPES(s):
+        output_dir = folder_paths.get_output_directory()
+        files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]
+        return {"required":
+                    {"image": (sorted(files),)},
+                }
+
+    CATEGORY = "image"
+
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "copy_image"
+    
+    def take_un_existed_name(self, image,no=0):
+        if no>0:
+            image_name = Path(image)
+            real_image = image_name.stem+f"_{str(no)}"+image_name.suffix
+        else:
+            real_image = image
+        target_image_path = os.path.join(folder_paths.get_input_directory(), real_image)
+        if os.path.exists(target_image_path):
+            #需要在后缀前加上_copy
+            return self.take_un_existed_name(image,no+1)
+        return (target_image_path,real_image)
+        
+    
+    def copy_image(self, image):
+        image_path = os.path.join(folder_paths.get_output_directory(), image)
+        target_image_path,target_image = self.take_un_existed_name(image)
+        shutil.copy(image_path, target_image_path)
+        return (target_image,)
+
+
+class LoadImageWithName:
+    # copy from comfyui
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required":
+                {"image": ("STRING", {
+                    "dynamicPrompts": False,
+                    "multiline": False,
+                    "default": ""
+                }), }
+                }
+
+    CATEGORY = "image"
+
+    RETURN_TYPES = ("IMAGE", "MASK")
+    FUNCTION = "load_image"
+
+    def load_image(self, image):
+        image_path = os.path.join(folder_paths.get_input_directory(), image)
+
+        img = node_helpers.pillow(Image.open, image_path)
+
+        output_images = []
+        output_masks = []
+        w, h = None, None
+
+        excluded_formats = ['MPO']
+
+        for i in ImageSequence.Iterator(img):
+            i = node_helpers.pillow(ImageOps.exif_transpose, i)
+
+            if i.mode == 'I':
+                i = i.point(lambda i: i * (1 / 255))
+            image = i.convert("RGB")
+
+            if len(output_images) == 0:
+                w = image.size[0]
+                h = image.size[1]
+
+            if image.size[0] != w or image.size[1] != h:
+                continue
+
+            image = np.array(image).astype(np.float32) / 255.0
+            image = torch.from_numpy(image)[None,]
+            if 'A' in i.getbands():
+                mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
+                mask = 1. - torch.from_numpy(mask)
+            else:
+                mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+            output_images.append(image)
+            output_masks.append(mask.unsqueeze(0))
+
+        if len(output_images) > 1 and img.format not in excluded_formats:
+            output_image = torch.cat(output_images, dim=0)
+            output_mask = torch.cat(output_masks, dim=0)
+        else:
+            output_image = output_images[0]
+            output_mask = output_masks[0]
+
+        return (output_image, output_mask)
 
 class ImageChangeDType:
     def __init__(self):
@@ -516,6 +618,8 @@ class ImageCropWithMask:
 
 
 NODE_CLASS_MAPPINGS = {
+    "Load Image With Name":LoadImageWithName,
+    "Output Image To Input":OutputImageToInput,
     "Mask Change DType": MaskChangeDType,
     "Image Change DType": ImageChangeDType,
     "Mask Change Device": MaskChangeDevice,
@@ -529,6 +633,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "Load Image With Name":"Load Image With Name",
+    "Output Image To Input":"Output Image To Input",
     "Mask Change DType": "Mask Change DType",
     "Image Change DType": "Image Change DType",
     "Mask Change Device": "Mask Change Device",
