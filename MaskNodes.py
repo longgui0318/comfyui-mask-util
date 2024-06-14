@@ -55,8 +55,7 @@ class ModelChangeDevice:
             if sam_model.device != seleted_device:
                 sam_model.to(seleted_device);
         if grounding_dino_model is not None:
-            if grounding_dino_model.device != seleted_device:
-                grounding_dino_model.to(seleted_device);
+            grounding_dino_model.to(seleted_device);
         if pipeline is not None:
             if pipeline.device != seleted_device:
                 pipeline.to(seleted_device);
