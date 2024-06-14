@@ -32,17 +32,19 @@ class ModelChangeDevice:
                 "trigger_condition_image":("IMAGE",),
                 "trigger_condition_mask": ("MASK",),
                 "trigger_condition_latent": ("LATENT",),
-                "trigger_condition_text": ("STRING",{"dynamicPrompts": True}),
+                "trigger_condition_text": ("STRING",{"default": ""}),
+                "trigger_condition_seed": ("INT", {"default": 0}),
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("info", )
+    RETURN_TYPES = ()
+    OUTPUT_NODE = True
+    
     FUNCTION = "changeDevice"
 
-    CATEGORY = "image"
+    CATEGORY = "model"
 
-    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None):
+    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
         #获取当前时间
         current_time = time.time()
         if device == "default":
@@ -71,9 +73,8 @@ class ModelChangeDevice:
                 vae.patcher.model.to(seleted_device)
                 vae.patcher.current_device = seleted_device
                 vae.device = seleted_device
-        use_time = (time.time() - current_time)/1000   
-        return (f"耗时:{use_time}s",)
-
+        use_time = (time.time() - current_time)/1000 
+        return { "ui": { "text": f"耗时:{use_time}s" } }      
 
 class OutputImageToInput:
     @classmethod
