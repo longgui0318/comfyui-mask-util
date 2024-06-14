@@ -14,6 +14,67 @@ from PIL import Image, ImageOps, ImageSequence, ImageFile
 from .utils import *
 from .resolution_utils import *
 
+class ModelChangeDeviceRepeaters:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "device": (["default", "cpu", "cuda", "cuda:0", "cuda:1"],),
+            },
+            "optional": {
+                "sam_model": ('SAM_MODEL', {}),
+                "grounding_dino_model": ('GROUNDING_DINO_MODEL', {}),
+                "model":('MODEL', {}),
+                "clip":('CLIP', {}),
+                "vae":('VAE', {}),
+                "pipeline":('PIPELINE', {}),
+                "trigger_condition_image":("IMAGE",),
+                "trigger_condition_mask": ("MASK",),
+                "trigger_condition_latent": ("LATENT",),
+                "trigger_condition_text": ("STRING",{"default": ""}),
+                "trigger_condition_seed": ("INT", {"default": 0}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE","MASK","LATENT","STRING","INT",)
+    RETURN_NAMES = ("image","mask","latent","text","seed", )
+    FUNCTION = "changeDevice"
+
+    CATEGORY = "model"
+
+    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
+        #获取当前时间
+        current_time = time.time()
+        if device == "default":
+            seleted_device = model_management.get_torch_device()
+        else:
+            seleted_device = torch.device(device)
+        if sam_model is not None:
+            if sam_model.device != seleted_device:
+                sam_model.to(seleted_device);
+        if grounding_dino_model is not None:
+            grounding_dino_model.to(seleted_device);
+        if pipeline is not None:
+            if pipeline.device != seleted_device:
+                pipeline.to(seleted_device);
+        if model is not None:
+            if model.current_device != seleted_device:
+                model.model.to(seleted_device)
+                model.current_device = seleted_device
+        if clip is not None:
+            if clip.patcher.current_device != seleted_device:
+                clip.patcher.model.to(seleted_device)
+                clip.patcher.current_device = seleted_device
+        if vae is not None:
+            if vae.patcher.current_device != seleted_device:
+                vae.patcher.model.to(seleted_device)
+                vae.patcher.current_device = seleted_device
+                vae.device = seleted_device
+        use_time = (time.time() - current_time)/1000 
+        print(f"ModelChangeDeviceRepeaters 耗时:{use_time}s")
+        return (trigger_condition_image,trigger_condition_mask,trigger_condition_latent,trigger_condition_text,trigger_condition_seed,) 
+
 class ModelChangeDevice:
 
     @classmethod
@@ -73,6 +134,7 @@ class ModelChangeDevice:
                 vae.patcher.current_device = seleted_device
                 vae.device = seleted_device
         use_time = (time.time() - current_time)/1000 
+        print(f"ModelChangeDevice 耗时:{use_time}s")
         return { "ui": { "text": f"耗时:{use_time}s" } }      
 
 class OutputImageToInput:
@@ -679,6 +741,7 @@ class ImageCropWithMask:
 
 
 NODE_CLASS_MAPPINGS = {
+    "Model Change Device Repeaters": ModelChangeDeviceRepeaters,
     "Model Change Device": ModelChangeDevice,
     "Load Image With Name": LoadImageWithName,
     "Output Image To Input": OutputImageToInput,
@@ -695,6 +758,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "Model Change Device Repeaters": "Model Change Device &Repeaters",
     "Model Change Device": "Model Change Device",
     "Load Image With Name": "Load Image With Name",
     "Output Image To Input": "Output Image To Input",
