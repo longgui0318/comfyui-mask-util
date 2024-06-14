@@ -48,6 +48,8 @@ class ModelChangeDeviceRepeaters:
         current_time = time.time()
         if device == "default":
             seleted_device = model_management.get_torch_device()
+        elif device == "cuda":
+            seleted_device = torch.device(torch.cuda.current_device())
         else:
             seleted_device = torch.device(device)
         if sam_model is not None:
@@ -110,6 +112,8 @@ class ModelChangeDevice:
         current_time = time.time()
         if device == "default":
             seleted_device = model_management.get_torch_device()
+        elif device == "cuda":
+            seleted_device = torch.device(torch.cuda.current_device())
         else:
             seleted_device = torch.device(device)
         if sam_model is not None:
@@ -314,6 +318,8 @@ class ImageChangeDevice:
 
         if device == "default":
             seleted_device = model_management.get_torch_device()
+        elif device == "cuda":
+            seleted_device = torch.device(torch.cuda.current_device())
         else:
             seleted_device = torch.device(device)
         if image.device != seleted_device:
@@ -344,6 +350,8 @@ class MaskChangeDevice:
 
         if device == "default":
             seleted_device = model_management.get_torch_device()
+        elif device == "cuda":
+            seleted_device = torch.device(torch.cuda.current_device())
         else:
             seleted_device = torch.device(device)
         if mask.device != seleted_device:
