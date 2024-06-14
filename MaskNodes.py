@@ -58,8 +58,7 @@ class ModelChangeDeviceRepeaters:
         if grounding_dino_model is not None:
             grounding_dino_model.to(seleted_device);
         if pipeline is not None:
-            if pipeline.device != seleted_device:
-                pipeline.to(seleted_device);
+            pipeline.enable_sequential_cpu_offload()
         if model is not None:
             if model.current_device != seleted_device:
                 model.model.to(seleted_device)
