@@ -66,7 +66,7 @@ class ModelChangeDevice:
                 clip.patcher.model.to(seleted_device)
                 clip.patcher.current_device = seleted_device
         if vae is not None:
-            if vae.patcher.device != seleted_device:
+            if vae.patcher.current_device != seleted_device:
                 vae.patcher.model.to(seleted_device)
                 vae.patcher.current_device = seleted_device
                 vae.device = seleted_device
