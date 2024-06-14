@@ -3,6 +3,7 @@ import cv2
 import torch
 import shutil
 import hashlib
+import time
 import folder_paths
 import node_helpers
 import numpy as np
@@ -12,6 +13,66 @@ from comfy import model_management
 from PIL import Image, ImageOps, ImageSequence, ImageFile
 from .utils import *
 from .resolution_utils import *
+
+class ModelChangeDevice:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "device": (["default", "cpu", "cuda", "cuda:0", "cuda:1"],),
+            },
+            "optional": {
+                "sam_model": ('SAM_MODEL', {}),
+                "grounding_dino_model": ('GROUNDING_DINO_MODEL', {}),
+                "model":('MODEL', {}),
+                "clip":('CLIP', {}),
+                "vae":('VAE', {}),
+                "pipeline":('PIPELINE', {}),
+                "trigger_condition_image":("IMAGE",),
+                "trigger_condition_mask": ("MASK",),
+                "trigger_condition_latent": ("LATENT",),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("info", )
+    FUNCTION = "changeDevice"
+
+    CATEGORY = "image"
+
+    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None):
+        #获取当前时间
+        current_time = time.time()
+        if device == "default":
+            seleted_device = model_management.get_torch_device()
+        else:
+            seleted_device = torch.device(device)
+        if sam_model is not None:
+            if sam_model.device != seleted_device:
+                sam_model.to(seleted_device);
+        if grounding_dino_model is not None:
+            if grounding_dino_model.device != seleted_device:
+                grounding_dino_model.to(seleted_device);
+        if pipeline is not None:
+            if pipeline.device != seleted_device:
+                pipeline.to(seleted_device);
+        if model is not None:
+            if model.current_device != seleted_device:
+                model.model.to(seleted_device)
+                model.current_device = seleted_device
+        if clip is not None:
+            if clip.patcher.current_device != seleted_device:
+                clip.patcher.model.to(seleted_device)
+                clip.patcher.current_device = seleted_device
+        if vae is not None:
+            if vae.patcher.device != seleted_device:
+                vae.patcher.model.to(seleted_device)
+                vae.patcher.current_device = seleted_device
+                vae.device = seleted_device
+        use_time = (time.time() - current_time)/1000   
+        return (f"耗时:{use_time}s",)
+
 
 class OutputImageToInput:
     @classmethod
@@ -616,10 +677,10 @@ class ImageCropWithMask:
         return (image_cv2.unsqueeze(0),)
 
 
-
 NODE_CLASS_MAPPINGS = {
-    "Load Image With Name":LoadImageWithName,
-    "Output Image To Input":OutputImageToInput,
+    "Model Change Device": ModelChangeDevice,
+    "Load Image With Name": LoadImageWithName,
+    "Output Image To Input": OutputImageToInput,
     "Mask Change DType": MaskChangeDType,
     "Image Change DType": ImageChangeDType,
     "Mask Change Device": MaskChangeDevice,
@@ -633,8 +694,9 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Load Image With Name":"Load Image With Name",
-    "Output Image To Input":"Output Image To Input",
+    "Model Change Device": "Model Change Device",
+    "Load Image With Name": "Load Image With Name",
+    "Output Image To Input": "Output Image To Input",
     "Mask Change DType": "Mask Change DType",
     "Image Change DType": "Image Change DType",
     "Mask Change Device": "Mask Change Device",
