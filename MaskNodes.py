@@ -3,6 +3,7 @@ import cv2
 import torch
 import shutil
 import hashlib
+from datetime import datetime
 import time
 import folder_paths
 import node_helpers
@@ -14,6 +15,27 @@ from PIL import Image, ImageOps, ImageSequence, ImageFile
 from .utils import *
 from .resolution_utils import *
 
+
+class BridgingDiffusersProgress:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "pipeline":('PIPELINE', {}),
+            },
+        }
+        
+    RETURN_TYPES = ("PIPELINE",)
+    RETURN_NAMES = ("pipeline", )
+    FUNCTION = "bridging"
+
+    CATEGORY = "model"
+    
+    def bridging(self, pipeline):
+        
+        
+        return (pipeline,)
+        
 class ModelChangeDeviceRepeaters:
 
     @classmethod
@@ -140,13 +162,31 @@ class ModelChangeDevice:
         print(f"ModelChangeDevice 耗时:{use_time}s")
         return { "ui": { "text": f"耗时:{use_time}s" } }      
 
+
 class OutputImageToInput:
+    
+    
     @classmethod
-    def INPUT_TYPES(s):
-        output_dir = folder_paths.get_output_directory()
-        files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]
+    def INPUT_TYPES(s):       
+        def load_children(dir):
+            childrens = []
+            for f in os.listdir(dir):
+                item = os.path.join(dir, f)
+                if os.path.isdir(item):
+                    item_childrens = load_children(item)
+                    if len(item_childrens)>0:
+                        childrens.extend(item_childrens)
+                else:
+                    childrens.append(item)
+            return childrens
+        files = load_children(folder_paths.get_output_directory())
+        file_mod_times = [(datetime.fromtimestamp(os.path.getmtime(file)), file) for file in files]
+        sorted_files = sorted(file_mod_times, key=lambda x: x[0], reverse=True)
+        #去除所有文件的folder_paths.get_output_directory()前缀
+        pre_len = len(folder_paths.get_output_directory())+1
+        files = [file[pre_len:] for _,file in sorted_files]
         return {"required":
-                    {"image": (sorted(files),)},
+                    {"image": (files,)},
                 }
 
     CATEGORY = "image"
