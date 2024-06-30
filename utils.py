@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import torch
 from PIL import Image
+from comfy import model_management
  
 # Converts a Tensor into a Numpy array
 # |imtype|: the desired type of the converted numpy array
@@ -92,3 +93,54 @@ def cv2img2tensor(imgs, bgr2rgb=True, float32=True):
         return [_totensor(img, bgr2rgb, float32) for img in imgs]
     else:
         return _totensor(imgs, bgr2rgb, float32)
+
+
+def cast_torch_device(device):
+    if device == "default":
+        seleted_device = model_management.get_torch_device()
+    elif device == "cuda":
+        seleted_device = torch.device(torch.cuda.current_device())
+    else:
+        seleted_device = torch.device(device)
+    return seleted_device
+
+def cast_torch_dtype(dtype):
+    if dtype == "float16":
+        seleted_type = torch.float16
+    elif dtype == "bfloat16":
+        seleted_type = torch.bfloat16
+    elif dtype == "int8":
+        seleted_type = torch.int8
+    else:
+        seleted_type = torch.float32
+    return seleted_type
+
+def change_obj_device(device,sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None, controlNet=None):
+    if sam_model is not None and hasattr(sam_model, 'device') and hasattr(sam_model, 'to'):
+        if sam_model.device != device:
+            sam_model.to(device);
+    if grounding_dino_model is not None and hasattr(grounding_dino_model, 'to'):
+        grounding_dino_model.to(device);
+    if pipeline is not None and hasattr(pipeline, 'enable_sequential_cpu_offload'):
+        pipeline.enable_sequential_cpu_offload()
+    if model is not None and hasattr(model, 'current_device') and hasattr(model, 'model') and hasattr(model.model, 'to'):
+        if model.current_device != device:
+            model.model.to(device)
+            model.current_device = device
+    if clip is not None and hasattr(clip, 'patcher') and hasattr(clip.patcher, 'current_device') and hasattr(clip.patcher, 'model') and hasattr(clip.patcher.model, 'to'):
+        if clip.patcher.current_device != device:
+            clip.patcher.model.to(device)
+            clip.patcher.current_device = device
+    if vae is not None and hasattr(vae, 'patcher') and hasattr(vae.patcher, 'current_device') and hasattr(vae.patcher, 'model') and hasattr(vae.patcher.model, 'to'):
+        if vae.patcher.current_device != device:
+            vae.patcher.model.to(device)
+            vae.patcher.current_device = device
+            vae.device = device
+    if controlNet is not None and hasattr(controlNet, 'device') and hasattr(controlNet, 'control_model_wrapped') and hasattr(controlNet.control_model_wrapped, 'model') and hasattr(controlNet.control_model_wrapped.model, 'to'):
+        if controlNet.device != device:
+            controlNet.control_model_wrapped.model.to(device)
+            controlNet.device = device
+    if controlNet is not None and hasattr(controlNet, 'device') and hasattr(controlNet, 't2i_model') and hasattr(controlNet.t2i_model, 'model') and hasattr(controlNet.t2i_model.model, 'to'):
+        if controlNet.device != device:
+            controlNet.t2i_model.model.to(device)
+            controlNet.device = device

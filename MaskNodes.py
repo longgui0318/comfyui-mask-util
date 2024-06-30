@@ -51,6 +51,7 @@ class ModelChangeDeviceRepeaters:
                 "clip":('CLIP', {}),
                 "vae":('VAE', {}),
                 "pipeline":('PIPELINE', {}),
+                "control_net":('CONTROL_NET', {}),
                 "trigger_condition_image":("IMAGE",),
                 "trigger_condition_mask": ("MASK",),
                 "trigger_condition_latent": ("LATENT",),
@@ -65,35 +66,11 @@ class ModelChangeDeviceRepeaters:
 
     CATEGORY = "model"
 
-    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
+    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,control_net=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
         #获取当前时间
         current_time = time.time()
-        if device == "default":
-            seleted_device = model_management.get_torch_device()
-        elif device == "cuda":
-            seleted_device = torch.device(torch.cuda.current_device())
-        else:
-            seleted_device = torch.device(device)
-        if sam_model is not None:
-            if sam_model.device != seleted_device:
-                sam_model.to(seleted_device);
-        if grounding_dino_model is not None:
-            grounding_dino_model.to(seleted_device);
-        if pipeline is not None:
-            pipeline.enable_sequential_cpu_offload()
-        if model is not None:
-            if model.current_device != seleted_device:
-                model.model.to(seleted_device)
-                model.current_device = seleted_device
-        if clip is not None:
-            if clip.patcher.current_device != seleted_device:
-                clip.patcher.model.to(seleted_device)
-                clip.patcher.current_device = seleted_device
-        if vae is not None:
-            if vae.patcher.current_device != seleted_device:
-                vae.patcher.model.to(seleted_device)
-                vae.patcher.current_device = seleted_device
-                vae.device = seleted_device
+        seleted_device = cast_torch_device(device)
+        change_obj_device(seleted_device,sam_model,grounding_dino_model,model,clip,vae,pipeline,control_net)
         use_time = (time.time() - current_time)/1000 
         print(f"ModelChangeDeviceRepeaters 耗时:{use_time}s")
         return (trigger_condition_image,trigger_condition_mask,trigger_condition_latent,trigger_condition_text,trigger_condition_seed,) 
@@ -113,6 +90,7 @@ class ModelChangeDevice:
                 "clip":('CLIP', {}),
                 "vae":('VAE', {}),
                 "pipeline":('PIPELINE', {}),
+                "control_net":('CONTROL_NET', {}),
                 "trigger_condition_image":("IMAGE",),
                 "trigger_condition_mask": ("MASK",),
                 "trigger_condition_latent": ("LATENT",),
@@ -128,40 +106,14 @@ class ModelChangeDevice:
 
     CATEGORY = "model"
 
-    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
+    def changeDevice(self, device = "default",sam_model=None,grounding_dino_model=None,model=None,clip=None,vae=None,pipeline=None,control_net=None,trigger_condition_image=None,trigger_condition_mask=None,trigger_condition_latent=None,trigger_condition_text=None,trigger_condition_seed=None):
         #获取当前时间
         current_time = time.time()
-        if device == "default":
-            seleted_device = model_management.get_torch_device()
-        elif device == "cuda":
-            seleted_device = torch.device(torch.cuda.current_device())
-        else:
-            seleted_device = torch.device(device)
-        if sam_model is not None:
-            if sam_model.device != seleted_device:
-                sam_model.to(seleted_device);
-        if grounding_dino_model is not None:
-            grounding_dino_model.to(seleted_device);
-        if pipeline is not None:
-            if pipeline.device != seleted_device:
-                pipeline.to(seleted_device);
-        if model is not None:
-            if model.current_device != seleted_device:
-                model.model.to(seleted_device)
-                model.current_device = seleted_device
-        if clip is not None:
-            if clip.patcher.current_device != seleted_device:
-                clip.patcher.model.to(seleted_device)
-                clip.patcher.current_device = seleted_device
-        if vae is not None:
-            if vae.patcher.current_device != seleted_device:
-                vae.patcher.model.to(seleted_device)
-                vae.patcher.current_device = seleted_device
-                vae.device = seleted_device
+        seleted_device = cast_torch_device(device)
+        change_obj_device(seleted_device,sam_model,grounding_dino_model,model,clip,vae,pipeline,control_net)
         use_time = (time.time() - current_time)/1000 
         print(f"ModelChangeDevice 耗时:{use_time}s")
         return { "ui": { "text": f"耗时:{use_time}s" } }      
-
 
 class OutputImageToInput:
     
@@ -295,12 +247,7 @@ class ImageChangeDType:
     CATEGORY = "image"
 
     def changeDType(self, image, dtype = "default"):
-        if dtype == "float16":
-            seleted_type = torch.float16
-        elif dtype == "bfloat16":
-            seleted_type = torch.bfloat16
-        else:
-            seleted_type = torch.float32
+        seleted_type = cast_torch_dtype(dtype)
         image = image.to(dtype=seleted_type)
         return (image,)
 
@@ -325,12 +272,7 @@ class MaskChangeDType:
     CATEGORY = "mask"
 
     def changeDType(self, mask, dtype = "default"):
-        if dtype == "float16":
-            seleted_type = torch.float16
-        elif dtype == "bfloat16":
-            seleted_type = torch.bfloat16
-        else:
-            seleted_type = torch.float32
+        seleted_type = cast_torch_dtype(dtype)
         mask = mask.to(dtype=seleted_type)
         return (mask,)
 
@@ -354,13 +296,7 @@ class ImageChangeDevice:
     CATEGORY = "image"
 
     def changeDevice(self, image, device = "default"):
-
-        if device == "default":
-            seleted_device = model_management.get_torch_device()
-        elif device == "cuda":
-            seleted_device = torch.device(torch.cuda.current_device())
-        else:
-            seleted_device = torch.device(device)
+        seleted_device = cast_torch_device(device)
         if image.device != seleted_device:
             image = image.to(seleted_device) 
         return (image,)
@@ -386,13 +322,7 @@ class MaskChangeDevice:
     CATEGORY = "mask"
 
     def changeDevice(self, mask, device = "default"):
-
-        if device == "default":
-            seleted_device = model_management.get_torch_device()
-        elif device == "cuda":
-            seleted_device = torch.device(torch.cuda.current_device())
-        else:
-            seleted_device = torch.device(device)
+        seleted_device = cast_torch_device(device)
         if mask.device != seleted_device:
             mask = mask.to(seleted_device) 
         return (mask,)
